@@ -1,0 +1,16 @@
+[package]
+name = "jarflex"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+byteorder = "1.5.0"
+clap = "4.5.2"
+exitcode = "1.1.2"
+shadow-rs = "0.27.1"
+zip = "0.6.6"
+
+[build-dependencies]
+shadow-rs = "0.27.1"
