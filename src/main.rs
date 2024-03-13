@@ -77,26 +77,28 @@ fn main() {
         };
 
         println!("\t - {}", entry.name());
+        let mut new_file_name = entry.name().to_string();
+        if new_file_name.starts_with(source_name) {
+            new_file_name = new_file_name.replace(source_name, target_name);
+            println!("\t *\t -> {}", new_file_name.clone());
+        }
+
         if !entry.name().ends_with(".class") {
             let options = FileOptions::default().compression_method(zip::CompressionMethod::Deflated);
-            let _ = new_jar_file.start_file(entry.name(), options);
+            let _ = new_jar_file.start_file(new_file_name, options);
 
             // 将修改后的字节码写入新的压缩包文件
             let _ = new_jar_file.write_all(&bytecode);
             continue;
         }
 
-        let result = rename(&bytecode, source_name, target_name);
+        // let flag = new_file_name.ends_with("TBaseType.class");
+        let flag = false;
+        let result = rename(&bytecode, source_name, target_name, flag);
         if result.is_err() {
             println!("[ERR] Failed to rename {} -> {}", source_name, target_name);
             println!("\t{}", result.err().unwrap());
             exit(DATAERR)
-        }
-
-        let mut new_file_name = entry.name().to_string();
-        if new_file_name.starts_with(source_name) {
-            new_file_name = new_file_name.replace(source_name, target_name);
-            println!("\t *\t -> {}", new_file_name.clone());
         }
 
         let bytecode = result.unwrap();
@@ -110,7 +112,7 @@ fn main() {
 
     println!("[INF] Compressing JAR file ...");
     if let Err(err) = new_jar_file.finish() {
-        println!("[ERR] Compressing JAR file failed");
+        println!("[ERR] Compressing JAR file failed.\n\t{}", err.to_string());
         exit(IOERR)
     };
 
@@ -119,7 +121,7 @@ fn main() {
     exit(OK)
 }
 
-fn rename(bytecode: &Vec<u8>, source: &String, target: &String) -> io::Result<Vec<u8>> {
+fn rename(bytecode: &Vec<u8>, source: &String, target: &String, flag: bool) -> io::Result<Vec<u8>> {
     let mut reader = std::io::Cursor::new(bytecode);
     let magic = reader.read_u32::<BigEndian>()?;
     let minor_version = reader.read_u16::<BigEndian>()?;
@@ -140,21 +142,28 @@ fn rename(bytecode: &Vec<u8>, source: &String, target: &String) -> io::Result<Ve
     for i in 1..constant_pool_count {
         let tag = reader.read_u8()?;
         modified_bytecode.write_u8(tag)?;
-        // println!("i: {}, tag: {}", i, tag);
+        if flag {
+            println!("i: {}, tag: {}", i, tag);
+        }
         match tag {
             // UTF-8 常量
             1 => {
                 let length = reader.read_u16::<BigEndian>()?;
-                // println!("length: {}", length);
+                if flag {
+                    println!("length: {}", length);
+                }
                 let mut bytes = vec![0; length as usize];
                 reader.read_exact(&mut bytes)?;
-                // println!("byte len: {}", bytes.len());
                 let value = String::from_utf8_lossy(&bytes);
-                // println!("val: {:?}", value.clone());
+                if flag {
+                    println!("val: {:?}", value.clone());
+                }
 
                 // 替换包名
                 let new_value = value.replace(source, target);
-                // println!("new val: {:?}", new_value.clone());
+                if flag {
+                    println!("new val: {:?}", new_value.clone());
+                }
                 let new_length = new_value.len() as u16;
                 modified_bytecode.write_u16::<BigEndian>(new_length)?;
                 modified_bytecode.write_all(new_value.as_bytes())?;
@@ -163,14 +172,18 @@ fn rename(bytecode: &Vec<u8>, source: &String, target: &String) -> io::Result<Ve
             _ => {
                 let length = match tag {
                     5 | 6 => 8,   // Long 或 Double 常量
-                    3 | 4 | 9..=12 | 14 | 17..=18 => 4,
+                    19 => 5,
+                    3 | 4 | 9..=12 | 14 | 17 | 18 => 4,
                     15 => 3,
+                    0 => 0,
                     _ => 2,   // 其他常量类型
                 };
-                // modified_bytecode.write_u16::<BigEndian>(length)?;
-                let mut bytes = vec![0; length as usize];
-                reader.read_exact(&mut bytes)?;
-                modified_bytecode.write_all(&bytes)?;
+                if length != 0 {
+                    // modified_bytecode.write_u16::<BigEndian>(length)?;
+                    let mut bytes = vec![0; length as usize];
+                    reader.read_exact(&mut bytes)?;
+                    modified_bytecode.write_all(&bytes)?;
+                }
             }
         }
     }
