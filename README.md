@@ -17,7 +17,19 @@ Use the **-h** or **--help** parameter to view detailed usage documentation.
 For example:
 
 ```shell
-jarflex -h
+$ jarflex -h
+
+Usage: jarflex.exe [OPTIONS] <jarfile>
+
+Arguments:
+  <jarfile>  JAR files that need to be operated
+
+Options:
+  -s <sname>       Source package name
+  -t <tname>       Target package name
+  -o <output>      Path to store generated files
+  -h, --help       Print help
+  -V, --version    Print version
 ```
 
 ## Build
