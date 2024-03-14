@@ -9,7 +9,7 @@ _✨ A tool designed for modifying JAR files ✨_
 ## Introduction 
 
 JarFlex is an open-source, out-of-the-box tool for modifying JAR files. 
-Suitable for the need to change the class files in the jar file when there is no source code, such as renaming package and class names, reducing or adding class files, encryption jars, etc.
+Suitable for the need to change the class in the jar file when there is no source code, such as renaming package and class names, reducing or adding class files, encryption jars, etc.
 
 ## Usage
 
